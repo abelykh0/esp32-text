@@ -8,7 +8,7 @@
 using namespace fabgl;
 using namespace std;
 
-#define RESOLUTION SVGA_800x600_60Hz
+#define RESOLUTION SVGA_800x600_56Hz
 #define SCREEN_WIDTH  100
 #define SCREEN_HEIGHT 43
 
@@ -25,6 +25,8 @@ public:
     void print(char* str, uint8_t foreColor, uint8_t backColor);
     void print(const char* str);
     void print(const char* str, uint8_t foreColor, uint8_t backColor);
+    void printChar(uint16_t x, uint16_t y, uint8_t ch);
+    void printChar(uint16_t x, uint16_t y, uint8_t ch, uint8_t foreColor, uint8_t backColor);
 
     void setAttribute(uint8_t x, uint8_t y, uint8_t foreColor, uint8_t backColor);
     void freeUnusedAttributes();
@@ -44,8 +46,6 @@ private:
     uint16_t cursor_y = 0;
 
     uint32_t* CreateAttribute(uint8_t foreColor, uint8_t backColor);
-    void printChar(uint16_t x, uint16_t y, uint8_t ch);
-    void printChar(uint16_t x, uint16_t y, uint8_t ch, uint8_t foreColor, uint8_t backColor);
     void cursorNext();
 };
 

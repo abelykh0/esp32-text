@@ -35,13 +35,14 @@ void VgaText::start(char const* modeline)
 void VgaText::setAttribute(uint8_t x, uint8_t y, uint8_t foreColor, uint8_t backColor)
 {
     uint32_t* attribute;
-    if (foreColor == 0xFF && backColor == 0xFF)
+    uint16_t colors = foreColor << 8 | backColor;
+
+    if (colors == 0xFFFF)
     {
         attribute = this->_defaultAttribute;
     }
     else
     {
-        uint16_t colors = foreColor << 8 | backColor;
 
         auto iterator = this->_attrToAddr.find(colors);
         if (iterator == this->_attrToAddr.end())
