@@ -5,11 +5,32 @@
 #define BACK_COLOR 0x10
 #define FORE_COLOR 0x3F
 
+extern "C" void IRAM_ATTR drawScanline(void* arg, uint8_t* dest, int scanLine);
+
+void VgaText::InitAttribute(uint32_t* attribute, uint8_t foreColor, uint8_t backColor)
+{
+	for (uint8_t i = 0; i < 16; i++)
+	{
+		uint8_t value = i;
+        uint32_t attributeValue;
+		for (uint8_t bit = 0; bit < 4; bit++)
+		{
+            VGA_PIXELINROW(((uint8_t*)&attributeValue), bit) = 
+                (value & 0x08 ?  foreColor : backColor) | this->m_HVSync;
+			value <<= 1;
+		}
+        
+        *attribute = attributeValue;
+        attribute++;
+	}
+}
+
 void VgaText::start(char const* modeline)
 {
-    this->_fontWidth = FONT_8x14.width;
-    this->_fontHeight = FONT_8x14.height;
-    this->_fontData = (uint8_t*)FONT_8x14.data;
+    FontInfo font = FONT_8x14;
+    this->_fontWidth = font.width;
+    this->_fontHeight = font.height;
+    this->_fontData = (uint8_t*)font.data;
     
 /*
     int charDataSize = 256 * this->_fontHeight * ((this->_fontWidth + 7) / 8);
@@ -17,19 +38,23 @@ void VgaText::start(char const* modeline)
     memcpy(this->_fontData, FONT_8x14.data, charDataSize);
 */
 
-    this->Attributes = (uint32_t**)heap_caps_malloc(SCREEN_WIDTH * SCREEN_HEIGHT * 4, MALLOC_CAP_8BIT);
+    // "default" attribute (white on blue)
+    this->_defaultAttribute = (uint32_t*)heap_caps_malloc(16 * 4, MALLOC_CAP_32BIT);
+
+    this->Attributes = (uint32_t**)heap_caps_malloc(SCREEN_WIDTH * SCREEN_HEIGHT * 4, MALLOC_CAP_32BIT);
 
     for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++)
     {
         this->Characters[i] = ' ';
-        this->Attributes[i] = nullptr;
+        this->Attributes[i] = this->_defaultAttribute;
     }
+
+    this->setDrawScanlineCallback(drawScanline, this);
 
     this->begin();
     this->setResolution(modeline);
 
-    // Create a "default" attribute "white on blue"
-    this->_defaultAttribute = this->CreateAttribute(FORE_COLOR, BACK_COLOR);
+    this->InitAttribute(this->_defaultAttribute, FORE_COLOR, BACK_COLOR);
 }
 
 void VgaText::setAttribute(uint8_t x, uint8_t y, uint8_t foreColor, uint8_t backColor)
@@ -159,56 +184,60 @@ void VgaText::freeUnusedAttributes()
 
 uint32_t* VgaText::CreateAttribute(uint8_t foreColor, uint8_t backColor)
 {
-    //uint32_t* result = (uint32_t*)heap_caps_malloc(16 * 4, MALLOC_CAP_8BIT);
-    uint32_t* result = (uint32_t*)heap_caps_malloc(16 * 4, MALLOC_CAP_32BIT);
-    uint32_t* attribute = result;
-	for (uint8_t i = 0; i < 16; i++)
-	{
-		uint8_t value = i;
-        uint32_t attributeValue;
-		for (uint8_t bit = 0; bit < 4; bit++)
-		{
-            VGA_PIXELINROW(((uint8_t*)&attributeValue), bit) = 
-                (value & 0x08 ?  foreColor : backColor) | this->m_HVSync;
-			value <<= 1;
-		}
-        
-        *attribute = attributeValue;
-        attribute++;
-	}
-
-    return result;
+    uint32_t* attribute = (uint32_t*)heap_caps_malloc(16 * 4, MALLOC_CAP_32BIT);
+    this->InitAttribute(attribute, foreColor, backColor);
+    return attribute;
 }
-
-void IRAM_ATTR VgaText::drawScanline(uint8_t* dest, int scanLine)
+/*
+void IRAM_ATTR drawScanline(void* arg, uint8_t* dest, int scanLine)
 {
-    if (_defaultAttribute == nullptr)
-    {
-        return;
-    }
+    auto controller = static_cast<VgaText*>(arg);
 
-    //uint8_t color = m_HVSync | 0x3F10;
-    //memset(dest, color, 800);
-
-    int y = scanLine / this->_fontHeight;
-    int fontRow = scanLine % this->_fontHeight;
-    uint32_t* dest32 = (uint32_t*)dest;
+    int y = scanLine / controller->_fontHeight;
+    int fontRow = scanLine % controller->_fontHeight;
     int startCoord = y * SCREEN_WIDTH;
 
-    for (int coord = startCoord; coord < startCoord + SCREEN_WIDTH; coord++)
-    {
-        uint8_t fontPixels = 
-            this->_fontData[(uint8_t)this->Characters[coord] * this->_fontHeight + fontRow];
-        
-        uint32_t* attribute = this->Attributes[coord];
-        if (attribute == nullptr)
-        {
-            attribute = this->_defaultAttribute;
-        }
+    uint32_t* characters = (uint32_t*)(controller->Characters + startCoord);
+    uint32_t** attributes = controller->Attributes + startCoord;
+    uint32_t* dest32 = (uint32_t*)dest;
+    uint32_t** lastAttribute = attributes + SCREEN_WIDTH - 1;
+    uint8_t* fontData = controller->_fontData + fontRow;
+    int fontHeight = controller->_fontHeight;
+    uint8_t character;
+    uint32_t* attribute;
+    uint8_t fontPixels;
 
-        *dest32 = attribute[fontPixels >> 4];
-        dest32++;
-        *dest32 = attribute[fontPixels & 0x0F];
-        dest32++;
-    }
+    do
+    {
+        uint8_t* fourCharacters = (uint8_t*)characters;
+
+        character = fourCharacters[0];
+        fontPixels = fontData[character * fontHeight];
+        attribute = attributes[0];
+        dest32[0] = attribute[fontPixels >> 4];
+        dest32[1] = attribute[fontPixels & 0x0F];
+
+        character = fourCharacters[1];
+        fontPixels = fontData[character * fontHeight];
+        attribute = attributes[1];
+        dest32[2] = attribute[fontPixels >> 4];
+        dest32[3] = attribute[fontPixels & 0x0F];
+
+        character = fourCharacters[2];
+        fontPixels = fontData[character * fontHeight];
+        attribute = attributes[2];
+        dest32[4] = attribute[fontPixels >> 4];
+        dest32[5] = attribute[fontPixels & 0x0F];
+
+        character = fourCharacters[3];
+        fontPixels = fontData[character * fontHeight];
+        attribute = attributes[3];
+        dest32[6] = attribute[fontPixels >> 4];
+        dest32[7] = attribute[fontPixels & 0x0F];
+
+        dest32 += 8;
+        attributes += 4;
+        characters++;
+    } while (attributes <= lastAttribute);
 }
+*/
