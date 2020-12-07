@@ -1,14 +1,14 @@
 #ifndef __SETTINGS__
 #define __SETTINGS__
 
-/*
 #define RESOLUTION SVGA_800x600_56Hz
 #define SCREEN_WIDTH  100
-#define SCREEN_HEIGHT 75
-*/
+#define SCREEN_HEIGHT 43
 
+/*
 #define RESOLUTION SVGA_1024x768_60Hz
 #define SCREEN_WIDTH  128
 #define SCREEN_HEIGHT 55
+*/
 
 #endif

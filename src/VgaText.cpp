@@ -188,7 +188,7 @@ uint32_t* VgaText::CreateAttribute(uint8_t foreColor, uint8_t backColor)
     this->InitAttribute(attribute, foreColor, backColor);
     return attribute;
 }
-/*
+
 void IRAM_ATTR drawScanline(void* arg, uint8_t* dest, int scanLine)
 {
     auto controller = static_cast<VgaText*>(arg);
@@ -197,7 +197,7 @@ void IRAM_ATTR drawScanline(void* arg, uint8_t* dest, int scanLine)
     int fontRow = scanLine % controller->_fontHeight;
     int startCoord = y * SCREEN_WIDTH;
 
-    uint32_t* characters = (uint32_t*)(controller->Characters + startCoord);
+    uint8_t* characters = (uint8_t*)(controller->Characters + startCoord);
     uint32_t** attributes = controller->Attributes + startCoord;
     uint32_t* dest32 = (uint32_t*)dest;
     uint32_t** lastAttribute = attributes + SCREEN_WIDTH - 1;
@@ -209,35 +209,14 @@ void IRAM_ATTR drawScanline(void* arg, uint8_t* dest, int scanLine)
 
     do
     {
-        uint8_t* fourCharacters = (uint8_t*)characters;
-
-        character = fourCharacters[0];
+        character = *characters;
         fontPixels = fontData[character * fontHeight];
-        attribute = attributes[0];
+        attribute = *attributes;
         dest32[0] = attribute[fontPixels >> 4];
         dest32[1] = attribute[fontPixels & 0x0F];
 
-        character = fourCharacters[1];
-        fontPixels = fontData[character * fontHeight];
-        attribute = attributes[1];
-        dest32[2] = attribute[fontPixels >> 4];
-        dest32[3] = attribute[fontPixels & 0x0F];
-
-        character = fourCharacters[2];
-        fontPixels = fontData[character * fontHeight];
-        attribute = attributes[2];
-        dest32[4] = attribute[fontPixels >> 4];
-        dest32[5] = attribute[fontPixels & 0x0F];
-
-        character = fourCharacters[3];
-        fontPixels = fontData[character * fontHeight];
-        attribute = attributes[3];
-        dest32[6] = attribute[fontPixels >> 4];
-        dest32[7] = attribute[fontPixels & 0x0F];
-
-        dest32 += 8;
-        attributes += 4;
+        dest32 += 2;
+        attributes++;
         characters++;
     } while (attributes <= lastAttribute);
 }
-*/
