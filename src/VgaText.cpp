@@ -55,6 +55,7 @@ void VgaText::start(char const* modeline)
     this->setResolution(modeline);
 
     this->InitAttribute(this->_defaultAttribute, FORE_COLOR, BACK_COLOR);
+    this->_attrToAddr.size();
 }
 
 void VgaText::setAttribute(uint8_t x, uint8_t y, uint8_t foreColor, uint8_t backColor)
