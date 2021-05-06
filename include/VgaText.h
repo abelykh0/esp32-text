@@ -17,7 +17,7 @@ public:
     uint8_t* _fontData;
     uint32_t* _defaultAttribute = nullptr;
 
-    char Characters[SCREEN_WIDTH * SCREEN_HEIGHT];
+    uint32_t* Characters;
     uint32_t** Attributes;
 
     void start(char const * modeline);

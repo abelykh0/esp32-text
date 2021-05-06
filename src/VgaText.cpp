@@ -27,6 +27,8 @@ void VgaText::InitAttribute(uint32_t* attribute, uint8_t foreColor, uint8_t back
 
 void VgaText::start(char const* modeline)
 {
+    this->Characters = (uint32_t*)heap_caps_malloc(SCREEN_WIDTH * SCREEN_HEIGHT * 4, MALLOC_CAP_32BIT);
+
     FontInfo font = FONT_8x14;
     this->_fontWidth = font.width;
     this->_fontHeight = font.height;
@@ -197,13 +199,13 @@ void IRAM_ATTR drawScanline(void* arg, uint8_t* dest, int scanLine)
     int fontRow = scanLine % controller->_fontHeight;
     int startCoord = y * SCREEN_WIDTH;
 
-    uint8_t* characters = (uint8_t*)(controller->Characters + startCoord);
+    uint32_t* characters = (uint32_t*)(controller->Characters + startCoord);
     uint32_t** attributes = controller->Attributes + startCoord;
     uint32_t* dest32 = (uint32_t*)dest;
     uint32_t** lastAttribute = attributes + SCREEN_WIDTH - 1;
     uint8_t* fontData = controller->_fontData + fontRow;
     int fontHeight = controller->_fontHeight;
-    uint8_t character;
+    uint32_t character;
     uint32_t* attribute;
     uint8_t fontPixels;
 
