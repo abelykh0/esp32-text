@@ -195,8 +195,9 @@ void IRAM_ATTR drawScanline(void* arg, uint8_t* dest, int scanLine)
 {
     auto controller = static_cast<VgaText*>(arg);
 
-    int y = scanLine / controller->_fontHeight;
-    int fontRow = scanLine % controller->_fontHeight;
+    int fontHeight = controller->_fontHeight;
+    int y = scanLine / fontHeight;
+    int fontRow = scanLine % fontHeight;
     int startCoord = y * SCREEN_WIDTH;
 
     uint32_t* characters = (uint32_t*)(controller->Characters + startCoord);
@@ -204,7 +205,6 @@ void IRAM_ATTR drawScanline(void* arg, uint8_t* dest, int scanLine)
     uint32_t* dest32 = (uint32_t*)dest;
     uint32_t** lastAttribute = attributes + SCREEN_WIDTH - 1;
     uint8_t* fontData = controller->_fontData + fontRow;
-    int fontHeight = controller->_fontHeight;
     uint32_t character;
     uint32_t* attribute;
     uint8_t fontPixels;
